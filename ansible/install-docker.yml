@@ -1,0 +1,45 @@
+---
+- name: Install docker
+  hosts: all
+  become: true
+
+  tasks:
+       
+    - name: Docker | Install Docker | Install Docker from Repo
+      apt:
+        name: docker.io
+        update_cache: yes
+        state: present
+      become: true
+      become_method: sudo
+
+    - name: Docker | Install Docker | Create Docker group
+      group:
+        name: docker
+        state: present
+
+    - name: Docker | Install Docker | Add Docker group to local user
+      user:
+        name: ubuntu
+        comment: "add user to docker group"
+        groups: docker
+        append: yes
+      become: true
+      become_method: sudo
+
+    - name: Docker | Install Docker | Add Docker group to local user
+      user:
+        name: jenkins
+        comment: "add user to docker group"
+        groups: docker
+        append: yes
+      become: true
+      become_method: sudo
+
+    - name: Docker | Install Docker | Enable Docker service at boot
+      systemd:
+        name: docker
+        enabled: yes
+        state: restarted
+      become: true
+      become_method: sudo

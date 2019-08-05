@@ -1,0 +1,60 @@
+---
+- name: Install K8S master services
+  hosts: k8s-master
+  vars:
+    k8s_master_ip: "{{ ansible_default_ipv4.address }}"
+  tasks:
+    - name: General | Load varibles
+      include_vars:
+        file: vars.yml
+
+    - name: initialize docker service
+      shell: systemctl enable docker.service
+      become: true
+      become_method: sudo
+
+    - name: K8S | Install Master | Initialize K8S with kubeadm
+      shell: kubeadm init --token={{ kubeadm_token }} --apiserver-advertise-address={{ k8s_master_ip }} --pod-network-cidr=192.168.0.0/16
+      become: true
+      become_method: sudo
+
+    - name: K8S | Install Master | Create .kube directory
+      file:
+        path: "{{ lookup('env','HOME') }}/.kube"
+        state: directory
+
+    - name: K8S | Install Master | Copy admin.conf file to /.kube/config
+      shell: "cp -i /etc/kubernetes/admin.conf {{ lookup('env','HOME') }}/.kube/config"
+      become: true
+      become_method: sudo
+
+    - name: K8S | Install Master | Change ownership on /.kube/config
+      file:
+        path: "{{ lookup('env','HOME') }}/.kube/config"
+        owner: ubuntu
+        group: docker
+      become: true
+      become_method: sudo
+
+    - name: K8S | Install Master | Install pod network
+      shell: kubectl apply -f https://docs.projectcalico.org/v3.3/getting-started/kubernetes/installation/hosted/rbac-kdd.yaml
+
+    - name: K8S | Install Master | Install pod network
+      shell: kubectl apply -f https://docs.projectcalico.org/v3.3/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml
+
+    - name: K8S | Deploy L4 service for ingress and ELB
+      shell: kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/master/deploy/static/provider/aws/service-l4.yaml
+
+    - name: K8S | Deploy configmap for ingress
+      shell: kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/master/deploy/static/provider/aws/patch-configmap-l4.yaml
+
+#    - name: Helm | install helm
+#      shell: helm init --history-max 200
+
+    - name: Helm | install helm
+      shell: helm init --service-account Tiller --history-max 200
+
+    - name: Helm | Set nginx-ingress RBAC
+      shell: helm install stable/nginx-ingress --name deluge-nginx --set rbac.create=true
+
+

@@ -1,0 +1,38 @@
+---
+- name: Install K8S common services
+  hosts: k8s-master, k8s-minions, jenkins-master
+  tasks:
+    - name: K8S | Install K8S | Install apt-transport-https
+      apt:
+        name: apt-transport-https
+        update_cache: yes
+        state: present
+      become: true
+      become_method: sudo
+
+    - name: K8S | Install K8S | Add K8S Repo 
+      apt_key:
+        url: "https://packages.cloud.google.com/apt/doc/apt-key.gpg"
+        state: present
+      become: true
+      become_method: sudo
+
+    - name: K8S | Install K8S | APT Repo 
+      apt_repository:
+        repo: 'deb http://apt.kubernetes.io/ kubernetes-xenial main'
+        state: present
+      become: true
+      become_method: sudo
+
+    - name: K8S | Install K8S | Install Kubernetes
+      apt: 
+        name: "{{ packages }}"
+        update_cache: yes
+        state: present
+      become: true
+      become_method: sudo
+      vars:
+        packages:
+        - kubelet
+        - kubeadm
+        - kubectl

@@ -1,0 +1,56 @@
+---
+- name: Jenkins master configuration
+  hosts: jenkins-master
+  become: ye
+  tasks:
+
+    - name: Jenkins - create initgroovy.d folder
+      file:
+        path: /var/lib/jenkins/init.groovy.d
+        state: directory
+      become: true
+      become_method: sudo
+
+    - name: Jenkins - create ./kube folder
+      file:
+        path: /var/lib/jenkins/.kube
+        state: directory
+      owner: jenkins
+      mode: 0644
+      become: true
+      become_method: sudo
+
+    - name: Jenkins user chown on ./kube folder
+      shell: chown -R jenkins /var/lib/jenkins/.kube
+      become: true
+      become_method: sudo
+
+    - name: General | Load varibles
+      include_vars:
+        file: vars.yml
+
+    - name: Copying k8s creds groovy
+      template:
+        src: 3_configure_k8s_creds.groovy
+        dest: /tmp/3_configure_k8s_creds.groovy
+
+    - name: Move file 3_configure_k8s_creds to /var/lib/jenkins/init.groovy.d
+      shell: mv /tmp/3_configure_k8s_creds.groovy /var/lib/jenkins/init.groovy.d
+      become: true
+      become_method: sudo
+
+    - name: Restart Jenkins
+      service: name=jenkins state=restarted enabled=yes
+      tags: jenkins
+      become: true
+      become_method: sudo
+
+
+##!/bin/bash
+#sudo apt install openjdk-8-jdk openjdk-8-jre -y
+#wget -q -O - https://pkg.jenkins.io/debian/jenkins.io.key | sudo apt-key add -
+#sudo sh -c 'echo deb http://pkg.jenkins.io/debian-stable binary/ > /etc/apt/sources.list.d/jenkins.list'
+#sudo apt update
+#sudo apt install default-jre jenkins -y
+#sudo systemctl start jenkins
+#sudo ufw allow 8080

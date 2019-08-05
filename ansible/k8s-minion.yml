@@ -1,0 +1,17 @@
+---
+- name: Install K8S master services
+  hosts: k8s-minions
+  tasks:
+    - name: General | Load varibles
+      include_vars:
+        file: vars.yml
+        
+    - name: K8S | Install Minion | Join K8S with kubeadm
+      shell: kubeadm join --token={{ kubeadm_token }} --discovery-token-unsafe-skip-ca-verification {{ k8s_master_ip }}:6443 
+      become: true
+      become_method: sudo
+
+#    - name: K8S | label app minions
+#      shell: kubectl label nodes <node-name> <label-key>=<label-value>
+#      become: true
+#      become_method: sudo

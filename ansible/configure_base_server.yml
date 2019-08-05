@@ -1,0 +1,58 @@
+---
+- name: configure base server
+  hosts: all
+  remote_user: ubuntu
+  become: yes
+
+
+  tasks:
+  - name: allow 'ubuntu' to have passwordless sudo
+    lineinfile:
+      dest: /etc/sudoers
+      line: 'ubuntu ALL=(ALL) NOPASSWD: ALL'
+      validate: 'visudo -cf %s'
+
+  - name: copy ssh keys for the ubuntu user
+    copy:
+     src: ~/.ssh/id_rsa
+     dest: ~/.ssh/id_rsa
+     owner: ubuntu
+     mode: 0440
+
+  - name: set up authorized keys for the ubuntu user
+    authorized_key:
+      user: ubuntu
+      state: present
+      key: "{{ lookup('file', lookup('env','HOME') + '/.ssh/id_rsa.pub') }}"
+
+  - name: install unzip
+    package:
+      name: unzip
+      state: present
+
+
+  - name: Install NTP
+    apt: name=ntp state=present
+    tags: ntp
+
+
+  - name: Copy over the NTP configuration
+    get_url:
+      url: https://raw.githubusercontent.com/shayharush/opsschol-ansible/master/session1/files/ntp.conf
+      dest: /etc/ntp.conf
+      mode: 0440
+    notify:
+      - restart ntpd
+
+  - name: Make sure NTP is stopped
+    service: name=ntp state=stopped enabled=yes
+    tags: ntp
+
+  - name: Make sure NTP is started up
+    service: name=ntp state=started enabled=yes
+    tags: ntp
+
+  handlers:
+  - name: restart ntpd
+    service: name=ntp state=started
+
